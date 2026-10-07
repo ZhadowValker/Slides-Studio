@@ -26,3 +26,27 @@ test('Install app is always reachable, uses the browser prompt when offered, and
   assert.ok(prompted);
   assert.deepEqual(a.errors, []); a.close();
 });
+
+test('presenting: swipe left/right changes slides, tap works, and the close button exits', async () => {
+  const a = await boot();
+  a.w.matchMedia = a.w.matchMedia || (() => ({ matches: false }));
+  const pn = () => a.$('#presenter .pn').textContent;
+  const ev = (type, x, y = 100) => a.$('#presenter').dispatchEvent(new a.w.MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 }));
+  a.$('#viewBar [aria-label="Present"]').click(); await wait(30);
+  assert.equal(a.$('#presenter').hidden, false);
+  assert.equal(pn(), '1 / 5');
+  ev('pointerdown', 400); ev('pointermove', 330); ev('pointermove', 250); ev('pointerup', 250); await wait(10);
+  a.$('#presenter').dispatchEvent(new a.w.MouseEvent('click', { bubbles: true, clientX: 250 }));
+  assert.equal(pn(), '2 / 5', 'swipe left goes forward (and the click that follows is ignored)');
+  ev('pointerdown', 200); ev('pointermove', 260); ev('pointermove', 330); ev('pointerup', 330); await wait(10);
+  a.$('#presenter').dispatchEvent(new a.w.MouseEvent('click', { bubbles: true, clientX: 330 }));
+  assert.equal(pn(), '1 / 5', 'swipe right goes back');
+  ev('pointerdown', 400); ev('pointermove', 395); ev('pointerup', 395); await wait(10);
+  assert.equal(pn(), '1 / 5', 'a tiny move is not a swipe');
+  ev('pointerdown', 200); ev('pointermove', 330); ev('pointerup', 330); await wait(10);
+  a.$('#presenter').dispatchEvent(new a.w.MouseEvent('click', { bubbles: true, clientX: 330 }));
+  assert.equal(pn(), '1 / 5', 'swiping right on the first slide does nothing');
+  a.$('#presenter .px').click(); await wait(10);
+  assert.equal(a.$('#presenter').hidden, true, 'close button exits');
+  assert.deepEqual(a.errors, []); a.close();
+});

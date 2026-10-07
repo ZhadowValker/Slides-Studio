@@ -183,6 +183,9 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
 /* present */
 #presenter{position:fixed;inset:0;background:#000;z-index:100;cursor:pointer;overflow:hidden}
 #presenter .slide{position:absolute;left:50%;top:50%;transform-origin:center}
+#presenter{touch-action:none;-webkit-user-select:none;user-select:none}
+#presenter .px{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));width:40px;height:40px;border-radius:50%;border:0;background:#ffffff1f;color:#fff;font-size:24px;line-height:1;cursor:pointer;opacity:0;transition:opacity .2s;backdrop-filter:blur(6px)}
+#presenter:hover .px,#presenter .px:focus-visible{opacity:.85} @media (hover:none){#presenter .px{opacity:.6}}
 #presenter .pn{position:absolute;right:16px;bottom:12px;color:#fff8;font-size:13px;font-variant-numeric:tabular-nums}
 
 #printRoot{display:none}
@@ -431,7 +434,7 @@ function blankDeck(){return {title:'Untitled deck',theme:'ink',slides:[mkSlide('
 const KEY='slides-studio:v1';
 let deck=sampleDeck(), assets={};
 let cur=0, sel=null, view='single', zoomVal='fit', scale=1;
-let editing=null, clip=null, autosave=true, presenting=false, pi=0;
+let editing=null, clip=null, autosave=true, presenting=false, pi=0, presK=1, presRoot=null, swiped=false;
 let hist=[], hi=-1, stripOff=false;
 let drive={id:null,name:'',auto:true};
 const slide=()=>deck.slides[cur];
@@ -1381,13 +1384,21 @@ function present(from){
   const p=$('#presenter'); p.hidden=false; drawPresent();
   if(p.requestFullscreen) p.requestFullscreen().catch(()=>{});
 }
-function drawPresent(){
+function drawPresent(dir){
   const p=$('#presenter'); const root=h('div'); paintSlide(root,deck.slides[pi]); root.classList.add('pres-slide');
-  const k=Math.min(innerWidth/W,innerHeight/H); root.style.transform=`translate(-50%,-50%) scale(${k})`;
-  p.replaceChildren(root,h('span',{class:'pn',text:`${pi+1} / ${deck.slides.length}`}));
+  presK=Math.min(innerWidth/W,innerHeight/H); presRoot=root;
+  const at=x=>`translate(calc(-50% + ${x}px), -50%) scale(${presK})`;
+  root.style.transform=at(0);
+  const x=h('button',{class:'px',type:'button','aria-label':'Exit presentation',title:'Exit (Esc)',text:'\u00d7',onclick:ev=>{ev.stopPropagation();exitPresent();}});
+  p.replaceChildren(root,h('span',{class:'pn',text:`${pi+1} / ${deck.slides.length}`}),x);
+  if(dir&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    root.style.transition='none'; root.style.opacity='0'; root.style.transform=at(dir*Math.min(80,innerWidth*0.12));
+    root.getBoundingClientRect();
+    root.style.transition='transform .24s ease, opacity .24s ease'; root.style.opacity='1'; root.style.transform=at(0);
+  }
 }
 function stepPresent(d){
-  const n=pi+d; if(n<0) return; if(n>=deck.slides.length){exitPresent();return;} pi=n; drawPresent();
+  const n=pi+d; if(n<0) return; if(n>=deck.slides.length){exitPresent();return;} pi=n; drawPresent(d);
 }
 function exitPresent(){
   if(!presenting) return; presenting=false; $('#presenter').hidden=true;
@@ -1395,8 +1406,41 @@ function exitPresent(){
   cur=pi; sel=null; renderAll();
 }
 $('#presenter').addEventListener('click',ev=>{
+  if(swiped){swiped=false;return;}
   if(ev.clientX<innerWidth*0.25) stepPresent(-1); else stepPresent(1);
 });
+// Swipe: the slide follows your finger; let go past 50 px (or flick quickly) to change slide.
+(()=>{
+  const p=$('#presenter'); let g=null;
+  const place=dx=>{if(presRoot) presRoot.style.transform=`translate(calc(-50% + ${dx}px), -50%) scale(${presK})`;};
+  p.addEventListener('pointerdown',ev=>{
+    if(!presenting||(ev.button!=null&&ev.button!==0)||ev.target.closest&&ev.target.closest('.px')) return;
+    g={id:ev.pointerId,x:ev.clientX,y:ev.clientY,t:Date.now(),dx:0,on:false};
+  });
+  p.addEventListener('pointermove',ev=>{
+    if(!g||(g.id!=null&&ev.pointerId!=null&&ev.pointerId!==g.id)) return;
+    const dx=ev.clientX-g.x, dy=ev.clientY-g.y;
+    if(!g.on){
+      if(Math.abs(dx)<10||Math.abs(dx)<Math.abs(dy)) return;
+      g.on=true; if(presRoot) presRoot.style.transition='none';
+      try{p.setPointerCapture(ev.pointerId);}catch(err){}
+    }
+    g.dx=dx; place(dx);
+  });
+  const end=ev=>{
+    if(!g) return; const s=g; g=null;
+    if(!s.on) return;
+    swiped=true; setTimeout(()=>{swiped=false;},60);
+    const dt=Math.max(1,Date.now()-s.t), fast=Math.abs(s.dx)/dt>0.5;
+    if(Math.abs(s.dx)>50||(fast&&Math.abs(s.dx)>20)){
+      const d=s.dx<0?1:-1, n=pi+d;
+      if(n<0||n>=deck.slides.length){ if(presRoot){presRoot.style.transition='transform .2s ease';place(0);} return; }
+      pi=n; drawPresent(d);
+    }else if(presRoot){presRoot.style.transition='transform .2s ease';place(0);}
+  };
+  p.addEventListener('pointerup',end);
+  p.addEventListener('pointercancel',()=>{if(g&&g.on&&presRoot){presRoot.style.transition='transform .2s ease';place(0);} g=null;});
+})();
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&presenting) exitPresent();});
 addEventListener('resize',()=>{if(presenting) drawPresent();});
 

@@ -69,7 +69,7 @@ The **gear icon** (bottom right, Slide settings) sets the section, the theme for
 
 ### Present, save and export
 
-The download icon at the top right opens the save and export menu. The play icon presents the deck full screen.
+The download icon at the top right opens the save and export menu. The play icon presents the deck full screen. Move between slides with the arrow keys, by tapping the left or right side of the screen, or by **swiping** left and right on a touch screen (the slide follows your finger). The **×** button in the corner, or Esc, ends the presentation.
 
 ![The save and export menu](docs/images/07-export-menu.png)
 
