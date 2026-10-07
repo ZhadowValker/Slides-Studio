@@ -248,7 +248,7 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
       <button class="ico" id="btnNext" title="Next slide (Page Down)" aria-label="Next slide"></button>
     </div>
     <div class="grp right" id="bottomRight">
-      <button class="btn ghost" id="btnSlide" data-popbtn>Slide settings</button>
+      <button class="ico" id="btnSlide" data-popbtn title="Slide settings" aria-label="Slide settings"></button>
     </div>
   </footer>
   <div id="strip" aria-label="Slides"></div>
@@ -330,6 +330,7 @@ const ICONS={
   alignC:'<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
   alignR:'<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
   list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
   cloud:'<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5 4.75 4.75 0 0117 18z"/>',
   trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
@@ -1441,7 +1442,7 @@ new ResizeObserver(()=>applyScale()).observe(vp);
 $('#btnShare').innerHTML=svg('lock',16)+'<span>Share</span>';
 $('#btnExpand').innerHTML=svg('expand'); $('#btnDeckMenu').innerHTML=svg('chevD',16);
 $('#btnUndo').innerHTML=svg('undo'); $('#btnRedo').innerHTML=svg('redo');
-$('#btnAdd').innerHTML=svg('plus'); $('#btnNotes').innerHTML=svg('notes');
+$('#btnAdd').innerHTML=svg('plus'); $('#btnNotes').innerHTML=svg('notes'); $('#btnSlide').innerHTML=svg('gear');
 $('#btnPrev').innerHTML=svg('chevL'); $('#btnNext').innerHTML=svg('chevR');
 
 $('#btnExpand').onclick=()=>{if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); else document.documentElement.requestFullscreen().catch(()=>{});};

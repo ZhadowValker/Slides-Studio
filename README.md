@@ -63,7 +63,7 @@ Click the grid icon at the bottom right to see all slides grouped by section. Ho
 
 ![The section view with the remove tooltip showing](docs/images/04-sections.png)
 
-**Slide settings** (bottom right) sets the section, the theme for the whole deck, and the background of the current slide.
+The **gear icon** (bottom right, Slide settings) sets the section, the theme for the whole deck, and the background of the current slide.
 
 ![The slide settings panel](docs/images/08-slide-settings.png)
 
