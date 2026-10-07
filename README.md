@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-lockup-dark.svg">
+    <img src="assets/logo-lockup-light.svg" alt="Slides Studio" width="420">
+  </picture>
+</p>
+
 # Slides Studio
 
 [![Deploy](https://github.com/ZhadowValker/Slides-Studio/actions/workflows/deploy.yml/badge.svg)](https://github.com/ZhadowValker/Slides-Studio/actions/workflows/deploy.yml)
@@ -5,7 +12,7 @@
 
 A slide editor that runs entirely in your browser. Build a deck, present it full screen, and export it to PowerPoint or PDF. The whole app is one file, `index.html`, so it needs no server and no build step.
 
-**Live site:** https://zhadowvalker.github.io/Slides-Studio/
+**Live site:** https://slides.soundmind.org.in/
 
 ![The Slides Studio editor with the sample deck open](docs/images/01-editor.png)
 
@@ -192,12 +199,31 @@ The live site opens the sample deck by default. To publish a deck of your own:
 
 ![The Share dialog with the publishing steps and the link](docs/images/06-share.png)
 
+## Brand
+
+The logo is a slide drawn as a golden rectangle (1.618 : 1). Each square inside it is 0.618 of the one before, and a quarter circle in every square forms the golden spiral.
+
+![How the logo is constructed from the golden ratio](assets/construction.png)
+
+| Item | Value |
+| --- | --- |
+| Gold | `#f2c14e` |
+| Blue | `#8ab4ff` |
+| Ink | `#101a22` |
+| Paper | `#f6f7f9` |
+| Wordmark | Inter SemiBold, "Slides Studio" |
+| Clear space | Keep 0.618 × the logo height free on all sides |
+| Smallest size | Mark: 16 px tall. Lockup: 24 px tall |
+
+Files are in `assets/`: `logo-mark.svg`, `logo-icon.svg` (app icon), `logo-icon-512.png`, and `logo-lockup-light.svg`, `logo-lockup-dark.svg` and `logo-lockup-transparent.svg`.
+
 ## Project structure
 
 ```
 Slides-Studio/
 ├── index.html                 The whole app (HTML, CSS and JavaScript)
 ├── deck.json                  The sample deck, used by the Share link
+├── assets/                    Logo files (SVG and PNG)
 ├── vendor/pptxgen.bundle.js   PowerPoint export library (PptxGenJS 3.12.0), served from the site
 ├── privacy.html               Privacy policy (needed for Google sign-in)
 ├── package.json               Scripts and test dependencies
