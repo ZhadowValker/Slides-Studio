@@ -15,16 +15,14 @@ test('the privacy link lives in the i chip, not in the top bar', async () => {
   a.close();
 });
 
-test('Install app appears only once the browser offers it, and the page links the manifest', async () => {
+test('Install app is always reachable, uses the browser prompt when offered, and the page links the manifest', async () => {
   const a = await boot();
-  assert.ok(a.$('#btnInstall').hidden);
+  assert.ok(!a.$('#btnInstall').hidden, 'visible even before the browser offers a prompt');
   assert.ok(a.$('link[rel="manifest"]'));
   const ev = new a.w.Event('beforeinstallprompt', { cancelable: true });
   let prompted = false; ev.prompt = () => { prompted = true; }; ev.userChoice = Promise.resolve({ outcome: 'accepted' });
   a.w.dispatchEvent(ev);
-  assert.ok(!a.$('#btnInstall').hidden);
   a.$('#btnInstall').click(); await wait(20);
   assert.ok(prompted);
-  assert.ok(a.$('#btnInstall').hidden);
   assert.deepEqual(a.errors, []); a.close();
 });

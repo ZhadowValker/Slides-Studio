@@ -207,7 +207,7 @@ Slides Studio is a Progressive Web App. Once the page has loaded once, it works 
 - **Android (Chrome):** open the menu and choose **Install app** or **Add to Home screen**.
 - **iPhone and iPad (Safari):** tap **Share**, then **Add to Home Screen**.
 
-Everything except Google sign-in, Google Drive and the web fonts works offline. Decks you edit offline are saved in the browser as usual, and Drive autosave resumes when you are back online and signed in.
+Everything except Google sign-in and Google Drive works offline. The fonts and the PowerPoint library are bundled with the app. The layout adapts to phones and tablets, and you can install it from the **i** chip at the bottom left on any device (on iPhone it shows the Add to Home Screen steps). Decks you edit offline are saved in the browser as usual, and Drive autosave resumes when you are back online and signed in.
 
 How it works: `manifest.webmanifest` describes the app and its icons, and `sw.js` is a service worker that keeps a copy of the app's own files. It asks the network first, so you always get the newest version when online. The deploy workflow stamps `sw.js` with the commit id, so each release replaces the old cache. The worker never touches requests to other sites.
 
@@ -292,7 +292,7 @@ The tests run `index.html` in a simulated browser (jsdom), so they cover the log
 
 ## Good to know
 
-- Slides are 16:9. Fonts (Newsreader, Schibsted Grotesk, IBM Plex Mono) load from Google Fonts. Without a connection the browser's default fonts are used.
+- Slides are 16:9. The fonts (Newsreader, Schibsted Grotesk, IBM Plex Mono, all under the SIL Open Font License) are bundled in `assets/fonts/`, so the app looks the same offline.
 - In the PowerPoint export, the three fonts map to Georgia, Calibri and Consolas so that the file opens predictably on any computer. Table colors with reduced opacity are blended into the slide background, because PowerPoint tables do not support transparency.
 - Reordering sections and slides by dragging uses the browser's drag-and-drop, which usually does not work on touch screens.
 - Google Drive tests use a simulated Google, so CI never signs in to a real account.

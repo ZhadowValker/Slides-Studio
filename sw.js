@@ -4,6 +4,8 @@ const BUILD = '__BUILD__';
 const CACHE = 'slides-studio-' + BUILD;
 const SHELL = [
   './', 'index.html', 'privacy.html', 'manifest.webmanifest', 'vendor/pptxgen.bundle.js',
+  'assets/fonts/fonts.css', 'assets/fonts/newsreader-latin-wght-normal.woff2', 'assets/fonts/newsreader-latin-wght-italic.woff2',
+  'assets/fonts/schibsted-grotesk-latin-wght-normal.woff2', 'assets/fonts/ibm-plex-mono-latin-400-normal.woff2', 'assets/fonts/ibm-plex-mono-latin-500-normal.woff2',
   'assets/logo-icon.svg', 'assets/logo-icon-192.png', 'assets/logo-icon-512.png', 'assets/logo-icon-maskable-512.png',
 ];
 

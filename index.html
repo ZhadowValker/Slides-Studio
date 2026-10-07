@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Slides Studio</title>
 <meta name="description" content="Slides Studio: a slide editor that runs entirely in your browser. Build, present and export decks to PowerPoint or PDF.">
 <meta name="theme-color" content="#171716">
@@ -19,9 +19,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Slides Studio">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/schibsted-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
 <style>
 :root{
   --ui-bg:#171716; --ui-panel:#171716; --ui-raise:#1f1e1d; --ui-line:#32302d;
@@ -33,7 +32,7 @@ html,body{height:100%;margin:0;background:var(--ui-bg);color:var(--ui-text);
   font:14px/1.4 'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
-#app{display:grid;grid-template-rows:52px minmax(0,1fr) 48px auto;height:100%}
+#app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:52px minmax(0,1fr) 48px auto;height:100%;height:100dvh;overflow:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 
 /* top bar */
 .top{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--ui-line);background:var(--ui-panel)}
@@ -198,6 +197,19 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
   #viewBar{top:66px;left:16px;right:auto} #fmtBar{top:118px}
   #viewport{padding-top:176px} .title-in{width:40vw}
 }
+@media (max-width:600px){
+  .top{padding:0 8px;gap:4px} .top #saveState{display:none}
+  .title-in{width:auto;flex:1 1 0;min-width:48px;max-width:none;padding:6px 6px}
+  #btnShare span,#btnExpand{display:none} #btnShare{padding:7px 10px}
+  .ico{min-width:32px;padding:0 4px}
+  .bottom{grid-template-columns:auto minmax(0,1fr) auto;padding:0 4px} .bottom .grp{gap:0;justify-content:center}
+  .bottom .grp:first-child{justify-content:flex-start} .bottom .right{justify-content:flex-end}
+  #insertBar{left:8px} #viewBar{left:8px} #fmtBar{left:8px;max-width:calc(100% - 16px)}
+  #viewport{padding-left:12px;padding-right:12px} #gridView{padding-left:12px;padding-right:12px}
+  #btnStrip{display:none}
+  #strip{padding:10px 10px 12px}
+  .info-pop{width:min(230px,calc(100vw - 24px))}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -236,7 +248,7 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
         <div class="info-pop">
           <b>Slides Studio</b>
           <span class="dim">A slide editor that runs in your browser.</span>
-          <button type="button" class="mi" id="btnInstall" hidden>Install app</button>
+          <button type="button" class="mi" id="btnInstall">Install app</button>
           <a class="mi" href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>
           <a class="mi" href="https://github.com/ZhadowValker/Slides-Studio" target="_blank" rel="noopener">Source on GitHub</a>
         </div>
@@ -1505,7 +1517,7 @@ vb.append(
   h('span',{class:'sep',id:'zoomSep'}),zoomSel
 );
 const seg=h('div',{class:'seg',role:'group','aria-label':'View'},btnSingle,btnGrid);
-const btnStrip=ibtn('chevD','Show or hide the slide strip',()=>{stripOff=!stripOff;updateChrome();applyScale();});
+const btnStrip=ibtn('chevD','Show or hide the slide strip',()=>{stripOff=!stripOff;updateChrome();applyScale();}); btnStrip.id='btnStrip';
 $('#bottomRight').append(seg,btnStrip);
 
 $('#btnShare').onclick=()=>{
@@ -1520,16 +1532,25 @@ $('#closeShare').onclick=()=>$('#shareDlg').close();
 
 /* ---------- install as an app (PWA) ---------- */
 let installEv=null;
-addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();installEv=ev;const b=$('#btnInstall');if(b) b.hidden=false;});
-addEventListener('appinstalled',()=>{installEv=null;const b=$('#btnInstall');if(b) b.hidden=true;toast('Slides Studio is installed.');});
+const isApp=()=>{try{return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;}catch(err){return false;}};
+const setInstallUI=()=>{const b=$('#btnInstall');if(b) b.hidden=isApp();};
+addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();installEv=ev;setInstallUI();});
+addEventListener('appinstalled',()=>{installEv=null;setInstallUI();toast('Slides Studio is installed.');});
 $('#btnInstall').onclick=async()=>{
-  if(!installEv) return; $('#infoChip').open=false;
-  installEv.prompt(); try{await installEv.userChoice;}catch(err){} installEv=null; $('#btnInstall').hidden=true;
+  $('#infoChip').open=false;
+  if(installEv){installEv.prompt(); try{await installEv.userChoice;}catch(err){} installEv=null; return;}
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  toast(ios?'In Safari, tap Share, then Add to Home Screen.':'Open your browser menu and choose Install app, or Add to Home screen.');
 };
+setInstallUI();
+addEventListener('offline',()=>toast('You are offline. Your changes are still saved on this device.'));
+addEventListener('online',()=>toast('Back online.'));
 document.addEventListener('pointerdown',ev=>{const c=$('#infoChip');if(c.open&&!c.contains(ev.target)) c.open=false;},true);
 document.addEventListener('keydown',ev=>{const c=$('#infoChip');if(ev.key==='Escape'&&c.open){c.open=false;}});
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
-  addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+  addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
+    let had=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had) toast('Slides Studio was updated. Reload to use the new version.'); had=true;});});
 }
 
 /* ---------- boot ---------- */
