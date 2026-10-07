@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+# Every push to main is checked, built and published.
+# You can also run it by hand from the Actions tab (Run workflow).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. A newer push waits for the running one to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build site
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v6
+
+      - name: Assemble the site
+        run: |
+          mkdir dist
+          cp index.html dist/
+          if [ -f deck.json ]; then cp deck.json dist/; fi
+          if [ -d decks ]; then cp -r decks dist/decks; fi
+          echo "Site contents:"
+          ls -la dist
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

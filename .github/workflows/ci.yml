@@ -1,0 +1,37 @@
+name: CI
+
+# Runs on every pull request and on pushes to any branch except main.
+# The deploy workflow also calls this one, so main is only published when it passes.
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Static checks (script syntax, required elements, deck.json)
+        run: npm run check
+
+      - name: Tests (editor behaviour and PowerPoint export)
+        run: npm test

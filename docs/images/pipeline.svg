@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1070 270" width="1070" height="270" role="img" aria-labelledby="t d">
+  <title id="t">CI/CD pipeline</title>
+  <desc id="d">A push to main runs CI, builds the site, deploys it to GitHub Pages, and the site goes live. Pull requests run CI only.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1.5L8.5 5L1 8.5z" fill="#3d82f6"/></marker>
+  </defs>
+  <style>
+    text{font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+    .h{fill:#ece9e4;font-size:19px;font-weight:700} .s{fill:#98938b;font-size:13.5px} .n{fill:#fff;font-size:13px;font-weight:700}
+  </style>
+  <rect x="1" y="1" width="1068" height="268" rx="18" fill="#171716" stroke="#32302d"/>
+  <g fill="#1f1e1d" stroke="#32302d">
+    <rect x="30"  y="78" width="170" height="104" rx="14"/><rect x="240" y="78" width="170" height="104" rx="14"/>
+    <rect x="450" y="78" width="170" height="104" rx="14"/><rect x="660" y="78" width="170" height="104" rx="14"/>
+    <rect x="870" y="78" width="170" height="104" rx="14" stroke="#3d82f6" stroke-width="2"/>
+  </g>
+  <g fill="#3d82f6"><circle cx="48" cy="60" r="12"/><circle cx="258" cy="60" r="12"/><circle cx="468" cy="60" r="12"/><circle cx="678" cy="60" r="12"/><circle cx="888" cy="60" r="12"/></g>
+  <g class="n" text-anchor="middle"><text x="48" y="64.5">1</text><text x="258" y="64.5">2</text><text x="468" y="64.5">3</text><text x="678" y="64.5">4</text><text x="888" y="64.5">5</text></g>
+  <g text-anchor="middle">
+    <text class="h" x="115" y="118">Push</text><text class="s" x="115" y="141">to main, or run</text><text class="s" x="115" y="159">by hand</text>
+    <text class="h" x="325" y="118">CI</text><text class="s" x="325" y="141">Syntax check and</text><text class="s" x="325" y="159">automated tests</text>
+    <text class="h" x="535" y="118">Build</text><text class="s" x="535" y="141">index.html and</text><text class="s" x="535" y="159">deck.json into dist/</text>
+    <text class="h" x="745" y="118">Deploy</text><text class="s" x="745" y="141">Upload to</text><text class="s" x="745" y="159">GitHub Pages</text>
+    <text class="h" x="955" y="118">Live</text><text class="s" x="955" y="141">zhadowvalker.github.io</text><text class="s" x="955" y="159">/Slides-Studio/</text>
+  </g>
+  <g stroke="#3d82f6" stroke-width="2.2" fill="none" marker-end="url(#a)">
+    <path d="M204 130H234"/><path d="M414 130H444"/><path d="M624 130H654"/><path d="M834 130H864"/>
+  </g>
+  <text x="535" y="226" text-anchor="middle" class="s">Pull requests and other branches run step 2 only. If CI fails, nothing is published.</text>
+</svg>
