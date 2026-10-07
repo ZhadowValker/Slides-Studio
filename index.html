@@ -14,6 +14,11 @@
 <meta name="twitter:card" content="summary">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' role='img' aria-label='Slides Studio'%3E%3Ctitle%3ESlides Studio%3C/title%3E%3Crect width='256' height='256' rx='37.35' fill='%230b1218'/%3E%3Cg transform='translate%2848.892 79.108%29 scale%280.978%29'%3E%3Crect width='161.803' height='100' rx='14.59' fill='%23101a22'/%3E%3CclipPath id='ss-slide'%3E%3Crect width='161.803' height='100' rx='14.59'/%3E%3C/clipPath%3E%3Cg clip-path='url%28%23ss-slide%29'%3E%3Cpath d='M100 100L0 100A100 100 0 0 1 100 0Z' fill='%23f2c14e'/%3E%3Cpath d='M100 61.803L161.803 61.803A61.803 61.803 0 0 0 100 0Z' fill='%238ab4ff'/%3E%3Cpath d='M123.607 61.803L161.803 61.803A38.197 38.197 0 0 1 123.607 100Z' fill='%23f2c14e'/%3E%3Cpath d='M123.607 76.393L100 76.393A23.607 23.607 0 0 0 123.607 100Z' fill='%238ab4ff'/%3E%3Cpath d='M114.59 76.393L100 76.393A14.59 14.59 0 0 1 114.59 61.803Z' fill='%23f2c14e'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="assets/logo-icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Slides Studio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,6 +37,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* top bar */
 .top{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--ui-line);background:var(--ui-panel)}
+.info{position:relative;margin-left:2px} .info summary{list-style:none;cursor:pointer;width:22px;height:22px;border-radius:50%;border:1px solid var(--ui-line);color:var(--ui-dim);display:grid;place-items:center;font:italic 600 13px/1 Newsreader,Georgia,serif;user-select:none}
+.info summary::-webkit-details-marker{display:none} .info summary:hover,.info[open] summary{color:var(--ui-text);border-color:var(--ui-dim)}
+.info-pop{position:absolute;left:0;bottom:calc(100% + 10px);width:230px;background:var(--ui-raise);border:1px solid var(--ui-line);border-radius:12px;padding:12px;display:grid;gap:4px;box-shadow:0 12px 32px #0009;z-index:60}
+.info-pop .dim{font-size:12px;margin-bottom:6px} .info-pop .mi{display:block;text-decoration:none;color:var(--ui-text);text-align:left;width:100%;box-sizing:border-box} .info-pop .mi[hidden]{display:none}
 .brand{display:inline-flex;align-items:center;flex:none;padding:0 2px;border-radius:6px} .brand-mark{height:22px;width:auto;display:block} .brand:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
 .title-in{background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 10px;font-weight:600;font-size:15px;min-width:120px;max-width:46vw;width:240px}
 .title-in:hover{border-color:var(--ui-line)} .title-in:focus{border-color:var(--ui-accent);outline:none;background:var(--ui-bg)}
@@ -199,7 +208,6 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
     <input id="deckTitle" class="title-in" aria-label="Deck title" spellcheck="false">
     <button class="ico" id="btnDeckMenu" data-popbtn title="Deck options" aria-label="Deck options"></button>
     <span id="saveState" class="dim"></span>
-    <a class="dim" href="privacy.html" target="_blank" rel="noopener" style="color:inherit">Privacy</a>
     <button class="chip" id="driveChip" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5 4.75 4.75 0 0117 18z"/></svg><span></span></button>
     <span class="grow"></span>
     <button class="ico" id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
@@ -223,6 +231,16 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
     <div class="grp">
       <button class="ico" id="btnAdd" data-popbtn title="Add slide" aria-label="Add slide"></button>
       <button class="ico" id="btnNotes" aria-pressed="false" title="Speaker notes" aria-label="Speaker notes"></button>
+      <details class="info" id="infoChip">
+        <summary title="About Slides Studio" aria-label="About Slides Studio">i</summary>
+        <div class="info-pop">
+          <b>Slides Studio</b>
+          <span class="dim">A slide editor that runs in your browser.</span>
+          <button type="button" class="mi" id="btnInstall" hidden>Install app</button>
+          <a class="mi" href="privacy.html" target="_blank" rel="noopener">Privacy policy</a>
+          <a class="mi" href="https://github.com/ZhadowValker/Slides-Studio" target="_blank" rel="noopener">Source on GitHub</a>
+        </div>
+      </details>
     </div>
     <div class="grp">
       <button class="ico" id="btnPrev" title="Previous slide (Page Up)" aria-label="Previous slide"></button>
@@ -1498,6 +1516,20 @@ $('#copyLink').onclick=()=>{
   (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast('Link copied.')).catch(()=>{document.execCommand&&document.execCommand('copy');toast('Link copied.');});
 };
 $('#closeShare').onclick=()=>$('#shareDlg').close();
+
+/* ---------- install as an app (PWA) ---------- */
+let installEv=null;
+addEventListener('beforeinstallprompt',ev=>{ev.preventDefault();installEv=ev;const b=$('#btnInstall');if(b) b.hidden=false;});
+addEventListener('appinstalled',()=>{installEv=null;const b=$('#btnInstall');if(b) b.hidden=true;toast('Slides Studio is installed.');});
+$('#btnInstall').onclick=async()=>{
+  if(!installEv) return; $('#infoChip').open=false;
+  installEv.prompt(); try{await installEv.userChoice;}catch(err){} installEv=null; $('#btnInstall').hidden=true;
+};
+document.addEventListener('pointerdown',ev=>{const c=$('#infoChip');if(c.open&&!c.contains(ev.target)) c.open=false;},true);
+document.addEventListener('keydown',ev=>{const c=$('#infoChip');if(ev.key==='Escape'&&c.open){c.open=false;}});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
 
 /* ---------- boot ---------- */
 async function boot(){

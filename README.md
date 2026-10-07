@@ -199,6 +199,18 @@ The live site opens the sample deck by default. To publish a deck of your own:
 
 ![The Share dialog with the publishing steps and the link](docs/images/06-share.png)
 
+## Install it as an app
+
+Slides Studio is a Progressive Web App. Once the page has loaded once, it works offline, and you can install it so it opens in its own window like a normal app.
+
+- **Chrome, Edge and Brave on a computer:** click the install icon in the address bar, or open the small **i** at the bottom left and choose **Install app**.
+- **Android (Chrome):** open the menu and choose **Install app** or **Add to Home screen**.
+- **iPhone and iPad (Safari):** tap **Share**, then **Add to Home Screen**.
+
+Everything except Google sign-in, Google Drive and the web fonts works offline. Decks you edit offline are saved in the browser as usual, and Drive autosave resumes when you are back online and signed in.
+
+How it works: `manifest.webmanifest` describes the app and its icons, and `sw.js` is a service worker that keeps a copy of the app's own files. It asks the network first, so you always get the newest version when online. The deploy workflow stamps `sw.js` with the commit id, so each release replaces the old cache. The worker never touches requests to other sites.
+
 ## Brand
 
 The logo is a slide drawn as a golden rectangle (1.618 : 1). Each square inside it is 0.618 of the one before, and a quarter circle in every square forms the golden spiral.
@@ -223,6 +235,8 @@ Files are in `assets/`: `logo-mark.svg`, `logo-icon.svg` (app icon), `logo-icon-
 Slides-Studio/
 ├── index.html                 The whole app (HTML, CSS and JavaScript)
 ├── deck.json                  The sample deck, used by the Share link
+├── manifest.webmanifest       PWA manifest
+├── sw.js                      PWA service worker (offline support)
 ├── assets/                    Logo files (SVG and PNG)
 ├── vendor/pptxgen.bundle.js   PowerPoint export library (PptxGenJS 3.12.0), served from the site
 ├── privacy.html               Privacy policy (needed for Google sign-in)
@@ -234,7 +248,8 @@ Slides-Studio/
 │   ├── helpers.mjs            Loads index.html in a simulated browser
 │   ├── slides.test.mjs        Editor behavior tests
 │   ├── export.test.mjs        PowerPoint export test
-│   └── drive.test.mjs         Google Drive tests with a simulated Google
+│   ├── drive.test.mjs         Google Drive tests with a simulated Google
+│   └── pwa.test.mjs           Info chip and install button tests
 ├── docs/images/               Screenshots and diagrams used in this README
 └── .github/
     ├── dependabot.yml
