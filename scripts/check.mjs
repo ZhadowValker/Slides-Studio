@@ -20,7 +20,7 @@ scripts.forEach((code, i) => {
 
 // 2. The elements the app wires up at start-up must exist.
 const ids = ['app', 'deckTitle', 'btnShare', 'insertBar', 'fmtBar', 'viewBar', 'viewport', 'stage', 'gridView',
-  'notesBar', 'notes', 'strip', 'presenter', 'printRoot', 'shareDlg', 'btnAdd', 'btnSlide', 'bottomRight'];
+  'notesBar', 'notes', 'strip', 'presenter', 'printRoot', 'shareDlg', 'btnAdd', 'btnSlide', 'bottomRight', 'driveDlg', 'driveChip', 'gClient', 'gKey', 'gSave'];
 const missing = ids.filter((id) => !new RegExp(`id="${id}"`).test(html));
 missing.length ? fail(`missing element ids: ${missing.join(', ')}`) : note(`all ${ids.length} required element ids are present`);
 

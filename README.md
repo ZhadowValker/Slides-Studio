@@ -17,6 +17,7 @@ A slide editor that runs entirely in your browser. Build a deck, present it full
 - Group slides into **sections**, rename them, and drag whole sections into a new order.
 - Add speaker notes, switch between three themes, and present full screen.
 - Export to **PowerPoint (.pptx)** or **PDF**, or save the deck as a `.json` file.
+- Connect **Google Drive** to save and open decks, autosave to Drive, export to Drive or Google Slides, and insert images from Drive.
 - Undo and redo every change. Your work is saved in your browser as you go.
 
 ## Quick start
@@ -84,6 +85,40 @@ The download icon at the top right opens the save and export menu. The play icon
 | Previous / next slide | `Page Up` / `Page Down` |
 | Deselect | `Esc` |
 | In present mode: next / previous / exit | `→` or `Space` / `←` / `Esc` |
+
+## Connect Google Drive
+
+The cloud icon next to the save menu connects Slides Studio to your own Google Drive. Everything runs in your browser. There is no server, and the app asks only for the `drive.file` permission, so it can see files it created or files you pick, nothing else.
+
+![The Google Drive menu with a linked deck](docs/images/10-drive-menu.png)
+
+| Menu item | What it does |
+| --- | --- |
+| Save deck to Drive | Creates `<title>.slides-studio.json` in a **Slides Studio** folder and links the deck to it. |
+| Save to Drive now / Save as a new Drive file | Updates the linked file, or makes a separate copy. |
+| Open deck from Drive… | Opens the Google file picker. The deck you choose becomes the linked deck. |
+| Export PowerPoint to Drive | Uploads a `.pptx` to the Slides Studio folder. |
+| Export as Google Slides | Uploads the deck and lets Drive convert it to a Google Slides file. |
+| Autosave to Drive | When on, changes are saved to the linked file about four seconds after you stop editing. A small chip next to the title shows the status. |
+| Add image → From Google Drive | Picks an image from Drive and adds it to the slide. |
+| Disconnect Google | Revokes the access token and unlinks the deck. Your Drive files are untouched. |
+
+### One-time setup
+
+Google requires every web app to use its own keys. This takes about ten minutes and costs nothing.
+
+![The Google Drive setup dialog](docs/images/09-drive-setup.png)
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and create a project.
+2. Enable the **Google Drive API** and the **Google Picker API** (**APIs & Services → Library**).
+3. Under **OAuth consent screen**, set up the app (External is fine) and add your Google account as a **test user**.
+4. Under **Credentials**, create an **OAuth client ID** of type **Web application**. Add your site's address to **Authorized JavaScript origins**, for example `https://YOUR-NAME.github.io` or `http://localhost:8080`. Use the origin only, with no path.
+5. Create an **API key** and restrict it to the Picker API and your site's address.
+6. In Slides Studio, choose the cloud icon, then **Set up Google Drive…**, and paste the Client ID and API key.
+
+The keys are stored only in your browser. The Client ID and API key are not secrets in the way a password is, but keep the API key restricted. To bake them into your published site for everyone who opens it, fill in `GOOGLE_DEFAULTS` near the top of the Drive section in `index.html`.
+
+Access tokens are held in memory and are never saved. After a reload, the next Drive action asks Google for a fresh token, usually without a prompt.
 
 ## Publish with GitHub Pages
 
@@ -168,7 +203,8 @@ Slides-Studio/
 ├── tests/
 │   ├── helpers.mjs            Loads index.html in a simulated browser
 │   ├── slides.test.mjs        Editor behavior tests
-│   └── export.test.mjs        PowerPoint export test
+│   ├── export.test.mjs        PowerPoint export test
+│   └── drive.test.mjs         Google Drive tests with a simulated Google
 ├── docs/images/               Screenshots and diagrams used in this README
 └── .github/
     ├── dependabot.yml
@@ -204,6 +240,9 @@ The tests run `index.html` in a simulated browser (jsdom), so they cover the log
 | The Share link shows the sample deck, not yours | `deck.json` is missing from the repository root, or the file name in the link does not match. |
 | The workflow does not start | Your default branch may be called `master`. Change `branches: [main]` in `deploy.yml` to match. |
 | The PowerPoint export says the library did not load | The page could not reach the CDN. Check your connection and try again. |
+| Google sign-in says the origin is not allowed | The address in the address bar must match an **Authorized JavaScript origin** exactly. Opening `index.html` as a file does not work. Use GitHub Pages or `npm start`. |
+| The Drive picker does not open | Check that the **Google Picker API** is enabled and that the API key is allowed to use it. |
+| "Drive paused" next to the title | Google needs you to sign in again. Click the chip. |
 | My deck is gone | Autosave is stored in one browser on one device. Use **Save deck (.json)** to keep a copy you can move. |
 
 ## Good to know
@@ -211,4 +250,5 @@ The tests run `index.html` in a simulated browser (jsdom), so they cover the log
 - Slides are 16:9. Fonts (Newsreader, Schibsted Grotesk, IBM Plex Mono) load from Google Fonts. Without a connection the browser's default fonts are used.
 - In the PowerPoint export, the three fonts map to Georgia, Calibri and Consolas so that the file opens predictably on any computer. Table colors with reduced opacity are blended into the slide background, because PowerPoint tables do not support transparency.
 - Reordering sections and slides by dragging uses the browser's drag-and-drop, which usually does not work on touch screens.
+- Google Drive tests use a simulated Google, so CI never signs in to a real account.
 - There is no AI assistant in this app.

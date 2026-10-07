@@ -8,7 +8,7 @@ const SOURCE = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8'
 
 export const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function boot({ PptxGenJS } = {}) {
+export async function boot({ PptxGenJS, init } = {}) {
   const errors = [];
   const dom = new JSDOM(SOURCE, {
     runScripts: 'dangerously',
@@ -18,6 +18,7 @@ export async function boot({ PptxGenJS } = {}) {
       w.ResizeObserver = class { observe() {} disconnect() {} };
       w.addEventListener('error', (e) => errors.push(e.message));
       if (PptxGenJS) w.PptxGenJS = PptxGenJS;
+      if (init) init(w);
     },
   });
   await wait(250);

@@ -130,6 +130,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 #toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:#eef1f6;color:#12151a;padding:9px 16px;border-radius:10px;font-weight:600;z-index:90;box-shadow:0 10px 30px #0008;max-width:90vw}
 dialog{background:var(--ui-raise);color:var(--ui-text);border:1px solid var(--ui-line);border-radius:16px;padding:22px 24px;max-width:520px;width:calc(100% - 32px)}
 dialog::backdrop{background:#0009}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ui-line);background:transparent;color:var(--ui-dim);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;max-width:240px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .chip:hover{color:var(--ui-text)} .chip.warn{color:#f5a524;border-color:#f5a524}
+dialog a{color:#8ab4ff}
 dialog h2{margin:0 0 6px;font-size:18px} dialog ol{padding-left:20px;margin:12px 0;display:grid;gap:8px}
 dialog code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;background:var(--ui-bg);padding:1px 6px;border-radius:5px}
 dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-width:0}
@@ -187,6 +190,7 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
     <input id="deckTitle" class="title-in" aria-label="Deck title" spellcheck="false">
     <button class="ico" id="btnDeckMenu" data-popbtn title="Deck options" aria-label="Deck options"></button>
     <span id="saveState" class="dim"></span>
+    <button class="chip" id="driveChip" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5 4.75 4.75 0 0117 18z"/></svg><span></span></button>
     <span class="grow"></span>
     <button class="ico" id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
     <button class="ico" id="btnRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"></button>
@@ -242,6 +246,23 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
   <div class="row" style="justify-content:flex-end"><button class="btn primary" id="closeShare">Done</button></div>
 </dialog>
 
+<dialog id="driveDlg">
+  <h2>Connect Google Drive</h2>
+  <p class="dim" style="margin:0">Slides Studio runs in your browser, so it uses your own Google Cloud keys. Nothing is sent anywhere except Google. It can only see files it creates or that you pick.</p>
+  <ol>
+    <li>In <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project and enable the <b>Google Drive API</b> and the <b>Google Picker API</b>.</li>
+    <li>Under <b>APIs &amp; Services → OAuth consent screen</b>, set up the app and add yourself as a test user.</li>
+    <li>Under <b>Credentials</b>, create an <b>OAuth client ID</b> of type <b>Web application</b>. Add the address below to <b>Authorized JavaScript origins</b>.</li>
+    <li>Create an <b>API key</b> and restrict it to the Picker API and to this address.</li>
+    <li>Paste both values here.</li>
+  </ol>
+  <label class="dim">This app's address (add it as an authorized origin)<input class="txt-ui" id="gOrigin" readonly></label>
+  <label class="dim">OAuth Client ID<input class="txt-ui" id="gClient" placeholder="1234-abc.apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label>
+  <label class="dim">API key<input class="txt-ui" id="gKey" placeholder="AIza…" spellcheck="false" autocomplete="off"></label>
+  <p id="gWarn" class="dim" style="color:#f5a524;margin:8px 0 0" role="alert"></p>
+  <div class="row"><button class="btn" id="gClear">Remove keys</button><span class="grow"></span><button class="btn" id="gCancel">Cancel</button><button class="btn primary" id="gSave">Save</button></div>
+</dialog>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" defer></script>
 <script>
 (()=>{
@@ -282,6 +303,7 @@ const ICONS={
   alignC:'<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
   alignR:'<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
   list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  cloud:'<path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5 4.75 4.75 0 0117 18z"/>',
   trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/>',
   front:'<rect x="4" y="4" width="11" height="11" rx="1.5"/><rect x="9" y="9" width="11" height="11" rx="1.5" fill="currentColor" fill-opacity=".55"/>',
@@ -306,9 +328,10 @@ function ibtn(icon,title,fn,o={}){
   if(fn) b.onclick=fn; return b;
 }
 const sep=()=>h('span',{class:'sep'});
-function toast(msg){
+function toast(msg,link){
   const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t);
-  toast.t=setTimeout(()=>{t.hidden=true},3600);
+  if(link&&/^https:\/\//.test(link.href||'')) t.append(' ',h('a',{href:link.href,target:'_blank',rel:'noopener',text:link.label||'Open',style:'color:#1a56db;margin-left:6px'}));
+  toast.t=setTimeout(()=>{t.hidden=true},link?9000:3600);
 }
 
 /* ---------- themes, fonts, layouts ---------- */
@@ -370,6 +393,7 @@ let deck=sampleDeck(), assets={};
 let cur=0, sel=null, view='single', zoomVal='fit', scale=1;
 let editing=null, clip=null, autosave=true, presenting=false, pi=0;
 let hist=[], hi=-1, stripOff=false;
+let drive={id:null,name:'',auto:true};
 const slide=()=>deck.slides[cur];
 const elById=id=>slide()&&slide().elements.find(e=>e.id===id);
 const nodeOf=id=>$('#stage').querySelector(`[data-id="${id}"]`);
@@ -388,12 +412,16 @@ function used(){
 }
 const serialize=()=>({format:'slides-studio',version:1,deck:clone(deck),assets:used()});
 let saveT;
+function persistLocal(){
+  try{localStorage.setItem(KEY,JSON.stringify(Object.assign(serialize(),{drive:driveLink()})));return true;}
+  catch(err){return false;}
+}
 function touchSave(){
+  driveQueue();
   if(!autosave){setSave('Autosave is off. Use Save deck to keep changes.');return;}
   setSave('Saving…'); clearTimeout(saveT);
   saveT=setTimeout(()=>{
-    try{localStorage.setItem(KEY,JSON.stringify(serialize()));setSave('Saved in this browser');}
-    catch(err){setSave('Too large to autosave. Use Save deck.');}
+    if(persistLocal()) setSave('Saved in this browser'); else setSave('Too large to autosave. Use Save deck.');
   },500);
 }
 const setSave=t=>{$('#saveState').textContent=t;};
@@ -410,6 +438,7 @@ function applyLoaded(d){
   if(!d||!d.deck||!Array.isArray(d.deck.slides)||!d.deck.slides.length) throw new Error('Not a Slides Studio deck');
   deck=d.deck; if(!THEMES[deck.theme]) deck.theme='ink'; assets=d.assets||{};
   cur=0; sel=null; hist=[]; hi=-1; snap();
+  drive={id:null,name:'',auto:true}; clearTimeout(dTimer); dStatus=''; dWarn=false;
 }
 
 /* ---------- slide painting ---------- */
@@ -969,9 +998,11 @@ function openJson(file){
   r.onload=()=>{try{applyLoaded(JSON.parse(r.result));autosave=true;renderAll();touchSave();toast('Deck opened.');}catch(err){toast('That file is not a Slides Studio deck.');}};
   r.readAsText(file);
 }
+function resetDrive(){drive={id:null,name:'',auto:true};clearTimeout(dTimer);dStatus='';dWarn=false;}
+function loadSample(){deck=sampleDeck();assets={};cur=0;sel=null;hist=[];hi=-1;snap();resetDrive();renderAll();touchSave();}
 function newDeck(){
   if(!confirm('Start a new deck? Save your current deck first if you want to keep it.')) return;
-  deck=blankDeck(); assets={}; cur=0; sel=null; hist=[]; hi=-1; snap(); autosave=true; renderAll(); touchSave();
+  deck=blankDeck(); assets={}; cur=0; sel=null; hist=[]; hi=-1; snap(); autosave=true; resetDrive(); renderAll(); touchSave();
 }
 function exportPDF(){
   finishEdit(); const pr=$('#printRoot'); pr.replaceChildren();
@@ -990,10 +1021,7 @@ async function rasterize(e){
   x.drawImage(im,(cw-dw)/2,(ch-dh)/2,dw,dh);
   return c.toDataURL(src.startsWith('data:image/jpeg')?'image/jpeg':'image/png',0.92);
 }
-async function exportPPTX(){
-  finishEdit();
-  if(!window.PptxGenJS){toast('The PowerPoint library did not load. Check your connection and try again.');return;}
-  toast('Building your PowerPoint file…');
+async function buildPptx(){
   const px=new PptxGenJS(); px.layout='LAYOUT_16x9'; px.title=deck.title;
   const I=v=>v/96;
   const mixHex=(a,b,t)=>{const q=x=>[0,2,4].map(i=>parseInt(x.slice(i,i+2),16)); const A=q(a),B=q(b); return A.map((v,i)=>Math.round(v*t+B[i]*(1-t)).toString(16).padStart(2,'0')).join('').toUpperCase();};
@@ -1032,9 +1060,239 @@ async function exportPPTX(){
     }
     if(s.notes) sl.addNotes(s.notes);
   }
-  try{await px.writeFile({fileName:fname()+'.pptx'});toast('PowerPoint file downloaded.');}
+  return px;
+}
+async function exportPPTX(){
+  finishEdit();
+  if(!window.PptxGenJS){toast('The PowerPoint library did not load. Check your connection and try again.');return;}
+  toast('Building your PowerPoint file…');
+  try{const px=await buildPptx();await px.writeFile({fileName:fname()+'.pptx'});toast('PowerPoint file downloaded.');}
   catch(err){toast('PowerPoint export failed.');}
 }
+
+/* ---------- Google Drive ---------- */
+// Slides Studio talks to Google directly from the browser. It only asks for the
+// "drive.file" permission: it can see files it created or files you pick, nothing else.
+const GCFG_KEY='slides-studio:google';
+const GOOGLE_DEFAULTS={clientId:'',apiKey:''};   // fill these in to bake your own keys into the page
+const G_SCOPE='https://www.googleapis.com/auth/drive.file';
+const G_FOLDER='Slides Studio';
+const D_DELAY=4000;
+const MIME_JSON='application/json',MIME_FOLDER='application/vnd.google-apps.folder',
+  MIME_GSLIDES='application/vnd.google-apps.presentation',
+  MIME_PPTX='application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const gcfg=Object.assign({},GOOGLE_DEFAULTS);
+try{const sv=JSON.parse(localStorage.getItem(GCFG_KEY)||'{}');['clientId','apiKey'].forEach(k=>{if(sv[k]) gcfg[k]=String(sv[k]);});}catch(err){}
+let gTok=null,gTokExp=0,gClient=null,gTokP=null,gFolder=null; const gScripts={};
+let dStatus='',dWarn=false,dTimer=null,dBusy=false,dDirty=false;
+
+function loadScript(src){
+  return gScripts[src]||(gScripts[src]=new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=src; s.async=true; s.onload=()=>res();
+    s.onerror=()=>{delete gScripts[src];rej(new Error('Could not reach Google. Check your connection.'));};
+    document.head.append(s);
+  }));
+}
+async function loadGIS(){ if(window.google&&google.accounts&&google.accounts.oauth2) return; await loadScript('https://accounts.google.com/gsi/client'); }
+async function loadPicker(){
+  if(window.google&&google.picker) return;
+  await loadScript('https://apis.google.com/js/api.js');
+  await new Promise((res,rej)=>gapi.load('picker',{callback:res,onerror:()=>rej(new Error('Could not load the Google file picker.'))}));
+}
+function getToken(){
+  if(gTok&&Date.now()<gTokExp-60000) return Promise.resolve(gTok);
+  if(!gcfg.clientId) return Promise.reject(new Error('setup'));
+  if(gTokP) return gTokP;
+  gTokP=loadGIS().then(()=>new Promise((res,rej)=>{
+    if(!gClient||gClient.cid!==gcfg.clientId){
+      gClient=google.accounts.oauth2.initTokenClient({client_id:gcfg.clientId,scope:G_SCOPE,
+        callback:r=>{
+          const p=gClient.pending; gClient.pending=null; if(!p) return;
+          if(r.error) p.rej(new Error(r.error));
+          else{gTok=r.access_token;gTokExp=Date.now()+(+r.expires_in||3600)*1000;try{localStorage.setItem(GCFG_KEY+':ok','1');}catch(e){}p.res(gTok);}
+        },
+        error_callback:e=>{const p=gClient.pending;gClient.pending=null;if(p) p.rej(new Error((e&&e.type)||'popup_failed'));}});
+      gClient.cid=gcfg.clientId;
+    }
+    gClient.pending={res,rej};
+    let had=false; try{had=localStorage.getItem(GCFG_KEY+':ok')==='1';}catch(e){}
+    gClient.requestAccessToken({prompt:had?'':'consent'});
+  })).finally(()=>{gTokP=null;});
+  return gTokP;
+}
+async function gfetch(url,opts={},retry=true){
+  const tok=await getToken();
+  const r=await fetch(url,Object.assign({},opts,{headers:Object.assign({Authorization:'Bearer '+tok},opts.headers||{})}));
+  if(r.status===401&&retry){gTok=null;return gfetch(url,opts,false);}
+  if(!r.ok){
+    let m=''; try{m=(await r.json()).error.message;}catch(e){}
+    const err=new Error(m||('Google Drive returned an error ('+r.status+')')); err.status=r.status; throw err;
+  }
+  return r;
+}
+const G_API='https://www.googleapis.com/drive/v3/files';
+async function ensureFolder(){
+  if(gFolder) return gFolder;
+  const q=encodeURIComponent("mimeType='"+MIME_FOLDER+"' and name='"+G_FOLDER+"' and trashed=false");
+  const found=await (await gfetch(G_API+'?q='+q+'&fields=files(id,name)&pageSize=1')).json();
+  if(found.files&&found.files[0]) return (gFolder=found.files[0].id);
+  const made=await (await gfetch(G_API+'?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:G_FOLDER,mimeType:MIME_FOLDER})})).json();
+  return (gFolder=made.id);
+}
+async function driveUpload({id,name,mime,blob,parents,convertTo}){
+  const meta={};
+  if(!id){meta.name=name; meta.mimeType=convertTo||mime; if(parents) meta.parents=parents;}
+  const b='ss'+uid()+uid();
+  const body=new Blob(['--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n',JSON.stringify(meta),
+    '\r\n--'+b+'\r\nContent-Type: '+mime+'\r\n\r\n',blob,'\r\n--'+b+'--']);
+  const url='https://www.googleapis.com/upload/drive/v3/files'+(id?'/'+encodeURIComponent(id):'')+'?uploadType=multipart&fields=id,name,webViewLink';
+  const r=await gfetch(url,{method:id?'PATCH':'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body});
+  return r.json();
+}
+const driveMedia=id=>G_API+'/'+encodeURIComponent(id)+'?alt=media';
+
+async function pick(kind){
+  if(!gcfg.apiKey){openDriveSettings();throw new Error('setup');}
+  const tok=await getToken(); await loadPicker();
+  return new Promise(res=>{
+    const P=google.picker;
+    const view=kind==='image'?new P.DocsView(P.ViewId.DOCS_IMAGES):new P.DocsView(P.ViewId.DOCS).setMimeTypes(MIME_JSON);
+    view.setIncludeFolders(true);
+    new P.PickerBuilder().setOAuthToken(tok).setDeveloperKey(gcfg.apiKey).setAppId(String(gcfg.clientId).split('-')[0])
+      .addView(view).setTitle(kind==='image'?'Choose an image':'Open a Slides Studio deck')
+      .setCallback(d=>{
+        if(d.action===P.Action.PICKED) res((d.docs&&d.docs[0])||null);
+        else if(d.action===P.Action.CANCEL) res(null);
+      }).build().setVisible(true);
+  });
+}
+
+/* status chip, queue and actions */
+function setDriveStatus(t,warn){dStatus=t;dWarn=!!warn;driveUI();}
+function driveLink(){return drive.id?{id:drive.id,name:drive.name,auto:drive.auto}:null;}
+function driveUI(){
+  const c=$('#driveChip'); if(!c) return;
+  c.hidden=!drive.id; if(!drive.id) return;
+  c.querySelector('span').textContent=dStatus||(drive.auto?'Drive autosave on':'Drive autosave off');
+  c.title=(drive.name||'Drive file')+(dWarn?' (needs attention)':'');
+  c.classList.toggle('warn',dWarn);
+}
+function driveQueue(){
+  if(!(drive.id&&drive.auto)) return;
+  clearTimeout(dTimer); setDriveStatus('Changes not in Drive yet');
+  dTimer=setTimeout(driveFlush,D_DELAY);
+}
+async function driveFlush(){
+  if(dBusy){dDirty=true;return;}
+  dBusy=true;
+  try{await driveSave();}
+  catch(err){setDriveStatus(/popup|setup|access_denied|closed/.test(String(err.message))?'Drive paused. Click to reconnect.':'Drive save failed. Click to retry.',true);}
+  finally{dBusy=false; if(dDirty){dDirty=false;driveQueue();}}
+}
+async function driveSave(asNew){
+  finishEdit(); setDriveStatus('Saving to Drive…');
+  const blob=new Blob([JSON.stringify(serialize())],{type:MIME_JSON}); let f=null;
+  if(drive.id&&!asNew){
+    try{f=await driveUpload({id:drive.id,mime:MIME_JSON,blob});}
+    catch(err){if(err.status===404){drive.id=null;}else throw err;}
+  }
+  if(!f){
+    const parent=await ensureFolder();
+    f=await driveUpload({name:(deck.title||'Untitled deck').replace(/[\\/]/g,'-')+'.slides-studio.json',mime:MIME_JSON,blob,parents:[parent]});
+  }
+  const first=drive.id!==f.id;
+  drive={id:f.id,name:f.name||drive.name,auto:first?true:drive.auto};
+  setDriveStatus('Saved to Drive'); if(autosave) persistLocal();
+  return first;
+}
+async function driveSaveAction(asNew){
+  const first=await driveSave(asNew);
+  toast(first?'Saved to Drive in "'+G_FOLDER+'". Changes now sync automatically.':'Saved to Drive.');
+}
+async function driveOpen(){
+  const f=await pick('deck'); if(!f) return;
+  toast('Opening from Drive…');
+  const d=JSON.parse(await (await gfetch(driveMedia(f.id))).text());
+  applyLoaded(d); autosave=true; drive={id:f.id,name:f.name||'',auto:true};
+  clearTimeout(dTimer); setDriveStatus('Opened from Drive'); renderAll(); persistLocal();
+  toast('Opened "'+(f.name||'deck')+'" from Drive.');
+}
+async function driveExport(asSlides){
+  finishEdit();
+  if(!window.PptxGenJS){toast('The PowerPoint library did not load. Check your connection and try again.');return;}
+  toast(asSlides?'Building and converting…':'Building your PowerPoint file…');
+  const px=await buildPptx(); const blob=await px.write({outputType:'blob'});
+  const parent=await ensureFolder();
+  const f=await driveUpload({name:fname()+(asSlides?'':'.pptx'),mime:MIME_PPTX,blob,parents:[parent],convertTo:asSlides?MIME_GSLIDES:null});
+  toast((asSlides?'Created a Google Slides file':'Exported to Drive')+' in "'+G_FOLDER+'".',{href:f.webViewLink,label:'Open'});
+}
+async function addImageFromDrive(){
+  const f=await pick('image'); if(!f) return;
+  toast('Fetching image…');
+  const blob=await (await gfetch(driveMedia(f.id))).blob();
+  await addImageFile(new File([blob],f.name||'image',{type:blob.type||f.mimeType||'image/png'}));
+}
+function driveErr(err){
+  const m=String(err&&err.message||err);
+  if(m==='setup') return;
+  if(/popup_closed/.test(m)) toast('Google sign-in was closed before it finished.');
+  else if(/popup_failed/.test(m)) toast('The browser blocked the Google sign-in window. Allow pop-ups and try again.');
+  else if(/access_denied/.test(m)) toast('Google access was not granted.');
+  else toast('Google Drive: '+m);
+}
+function gd(fn){
+  if(!gcfg.clientId){openDriveSettings();return Promise.resolve();}
+  return Promise.resolve().then(fn).catch(driveErr);
+}
+function disconnectGoogle(){
+  const t=gTok; gTok=null; gTokExp=0; gFolder=null; clearTimeout(dTimer);
+  try{localStorage.removeItem(GCFG_KEY+':ok');}catch(e){}
+  if(t&&window.google&&google.accounts&&google.accounts.oauth2) try{google.accounts.oauth2.revoke(t,()=>{});}catch(e){}
+  drive={id:null,name:'',auto:true}; dStatus=''; dWarn=false; driveUI(); if(autosave) persistLocal();
+  toast('Disconnected from Google. Your Drive files are untouched.');
+}
+function driveMenu(anchor){
+  const items=[];
+  if(!gcfg.clientId) items.push({icon:'cloud',label:'Set up Google Drive…',run:openDriveSettings});
+  else{
+    items.push({icon:'cloud',label:drive.id?'Save to Drive now':'Save deck to Drive',run:()=>gd(()=>driveSaveAction(false))});
+    if(drive.id) items.push({icon:'copy',label:'Save as a new Drive file',run:()=>gd(()=>driveSaveAction(true))});
+    items.push({icon:'open',label:'Open deck from Drive…',run:()=>gd(driveOpen)},'-',
+      {icon:'slides',label:'Export PowerPoint to Drive',run:()=>gd(()=>driveExport(false))},
+      {icon:'slides',label:'Export as Google Slides',run:()=>gd(()=>driveExport(true))});
+    if(drive.id) items.push('-',{icon:'cloud',label:'Autosave to Drive',hint:drive.auto?'On':'Off',run:()=>{
+      drive.auto=!drive.auto; clearTimeout(dTimer); if(drive.auto) driveQueue(); else setDriveStatus(''); driveUI(); if(autosave) persistLocal();
+    }});
+    items.push('-',{icon:'file',label:'Google Drive settings…',run:openDriveSettings});
+    if(gTok||drive.id) items.push({icon:'trash',label:'Disconnect Google',run:disconnectGoogle});
+  }
+  openPop(anchor,menu(items),{right:true});
+}
+function openDriveSettings(){
+  closePop();
+  const dlg=$('#driveDlg'); $('#gClient').value=gcfg.clientId; $('#gKey').value=gcfg.apiKey;
+  const o=location.origin; $('#gOrigin').value=/^https?:/.test(location.protocol)?o:'(open the app from https://… or http://localhost, not as a file)';
+  $('#gWarn').textContent=''; if(dlg.showModal) dlg.showModal();
+}
+$('#gCancel').onclick=()=>$('#driveDlg').close();
+$('#gSave').onclick=()=>{
+  const c=$('#gClient').value.trim(), k=$('#gKey').value.trim();
+  if(!c||!k){$('#gWarn').textContent='Both the Client ID and the API key are needed.';return;}
+  if(!/\.apps\.googleusercontent\.com$/.test(c)){$('#gWarn').textContent='The Client ID should end in .apps.googleusercontent.com.';return;}
+  gcfg.clientId=c; gcfg.apiKey=k; gTok=null; gClient=null; gFolder=null;
+  try{localStorage.setItem(GCFG_KEY,JSON.stringify({clientId:c,apiKey:k}));}catch(e){}
+  $('#driveDlg').close(); toast('Google Drive is set up. Open the cloud menu to save or open a deck.');
+};
+$('#gClear').onclick=()=>{
+  gcfg.clientId=GOOGLE_DEFAULTS.clientId; gcfg.apiKey=GOOGLE_DEFAULTS.apiKey; gTok=null; gClient=null; gFolder=null;
+  try{localStorage.removeItem(GCFG_KEY);}catch(e){}
+  $('#driveDlg').close(); toast('Google keys removed from this browser.');
+};
+$('#driveChip').onclick=ev=>{
+  if(dWarn) gd(async()=>{await getToken();await driveFlushNow();}); else driveMenu(ev.currentTarget);
+};
+async function driveFlushNow(){dBusy=false;await driveFlush();}
+
 
 /* present mode */
 function present(from){
@@ -1122,7 +1380,7 @@ $('#btnExpand').onclick=()=>{if(document.fullscreenElement) document.exitFullscr
 $('#btnDeckMenu').onclick=ev=>openPop(ev.currentTarget,menu([
   {icon:'open',label:'Open deck…',run:()=>$('#fileDeck').click()},
   {icon:'plus',label:'New deck',run:newDeck},
-  {icon:'slides',label:'Load sample deck',run:()=>{deck=sampleDeck();assets={};cur=0;sel=null;hist=[];hi=-1;snap();renderAll();touchSave();}}
+  {icon:'slides',label:'Load sample deck',run:loadSample}
 ]));
 $('#btnUndo').onclick=undo; $('#btnRedo').onclick=redo;
 $('#btnPrev').onclick=()=>go(cur-1); $('#btnNext').onclick=()=>go(cur+1);
@@ -1145,7 +1403,8 @@ ib.append(
   ibtn('text','Add text',addText),
   ibtn('image','Add image',ev=>openPop(ev.currentTarget,menu([
     {icon:'open',label:'Upload from device',run:()=>$('#fileImg').click()},
-    {icon:'image',label:'From web address',run:addImageUrl}
+    {icon:'image',label:'From web address',run:addImageUrl},
+    {icon:'cloud',label:'From Google Drive',run:()=>gd(addImageFromDrive)}
   ])),{pop:true}),
   ibtn('table','Add table',addTable),
   ibtn('shapes','Add shape',ev=>openPop(ev.currentTarget,menu([
@@ -1170,8 +1429,9 @@ vb.append(
     {icon:'printer',label:'Export PDF',run:exportPDF},
     '-',
     {icon:'plus',label:'New deck',run:newDeck},
-    {icon:'slides',label:'Load sample deck',run:()=>{deck=sampleDeck();assets={};cur=0;sel=null;hist=[];hi=-1;snap();renderAll();touchSave();}}
+    {icon:'slides',label:'Load sample deck',run:loadSample}
   ]),{right:true}),{pop:true}),
+  ibtn('cloud','Google Drive',ev=>driveMenu(ev.currentTarget),{pop:true}),
   ibtn('play','Present',()=>present(cur)),
   h('span',{class:'sep',id:'zoomSep'}),zoomSel
 );
@@ -1197,9 +1457,10 @@ async function boot(){
     catch(err){toast('Could not open '+q.get('deck')+'. Showing your last deck instead.');}
   }
   if(!loaded){
-    try{const raw=localStorage.getItem(KEY);if(raw){applyLoaded(JSON.parse(raw));loaded=true;}}catch(err){}
+    try{const raw=localStorage.getItem(KEY);if(raw){const dd=JSON.parse(raw);applyLoaded(dd);loaded=true;if(dd.drive&&dd.drive.id) drive={id:String(dd.drive.id),name:String(dd.drive.name||''),auto:dd.drive.auto!==false};}}catch(err){}
   }
   if(!loaded){deck=sampleDeck();assets={};hist=[];hi=-1;snap();}
+  driveUI(); if(gcfg.clientId) loadGIS().catch(()=>{});
   renderAll(); setSave(autosave?(loaded?'Saved in this browser':'Not saved yet'):'Opened from file. Use Save deck to keep changes.');
   if(q.has('present')) present(0);
 }
