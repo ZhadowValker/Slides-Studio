@@ -198,6 +198,7 @@ The live site opens the sample deck by default. To publish a deck of your own:
 Slides-Studio/
 ├── index.html                 The whole app (HTML, CSS and JavaScript)
 ├── deck.json                  The sample deck, used by the Share link
+├── vendor/pptxgen.bundle.js   PowerPoint export library (PptxGenJS 3.12.0), served from the site
 ├── privacy.html               Privacy policy (needed for Google sign-in)
 ├── package.json               Scripts and test dependencies
 ├── package-lock.json
@@ -230,7 +231,7 @@ npm start         # serve the app at http://localhost:8080
 
 The tests run `index.html` in a simulated browser (jsdom), so they cover the logic and the exported PowerPoint file, not the pixel layout. Check how a change looks in a real browser before you push it.
 
-`pptxgenjs` is pinned to `3.12.0` on purpose. It is the version `index.html` loads from the CDN, and the tests need to use the same one. If you change the version in the `<script>` tag, change it in `package.json` too.
+`pptxgenjs` is pinned to `3.12.0` on purpose. It is the version in `vendor/pptxgen.bundle.js` (and the CDN fallbacks in `index.html`), and the tests need to use the same one. To upgrade, update `package.json`, run `npm ci`, then copy `node_modules/pptxgenjs/dist/pptxgen.bundle.js` over `vendor/pptxgen.bundle.js`.
 
 ## Troubleshooting
 

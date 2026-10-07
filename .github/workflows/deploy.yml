@@ -37,6 +37,7 @@ jobs:
         run: |
           mkdir dist
           cp index.html privacy.html dist/
+          cp -r vendor dist/vendor
           if [ -f deck.json ]; then cp deck.json dist/; fi
           if [ -d decks ]; then cp -r decks dist/decks; fi
           echo "Site contents:"

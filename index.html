@@ -264,7 +264,6 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
   <div class="row"><button class="btn" id="gClear">Remove keys</button><span class="grow"></span><button class="btn" id="gCancel">Cancel</button><button class="btn primary" id="gSave">Save</button></div>
 </dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" defer></script>
 <script>
 (()=>{
 'use strict';
@@ -1022,6 +1021,18 @@ async function rasterize(e){
   x.drawImage(im,(cw-dw)/2,(ch-dh)/2,dw,dh);
   return c.toDataURL(src.startsWith('data:image/jpeg')?'image/jpeg':'image/png',0.92);
 }
+// The PowerPoint library ships with the site (vendor/). CDNs are only a fallback.
+const PPTX_SRCS=['vendor/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js'];
+async function loadPptx(){
+  if(window.PptxGenJS) return true;
+  for(const src of PPTX_SRCS){
+    try{
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>{s.remove();rej(new Error('load'));};document.head.append(s);});
+      if(window.PptxGenJS) return true;
+    }catch(err){}
+  }
+  return false;
+}
 async function buildPptx(){
   const px=new PptxGenJS(); px.layout='LAYOUT_16x9'; px.title=deck.title;
   const I=v=>v/96;
@@ -1065,7 +1076,7 @@ async function buildPptx(){
 }
 async function exportPPTX(){
   finishEdit();
-  if(!window.PptxGenJS){toast('The PowerPoint library did not load. Check your connection and try again.');return;}
+  if(!(await loadPptx())){toast('The PowerPoint library did not load. Check your connection or ad blocker and try again.');return;}
   toast('Building your PowerPoint file…');
   try{const px=await buildPptx();await px.writeFile({fileName:fname()+'.pptx'});toast('PowerPoint file downloaded.');}
   catch(err){toast('PowerPoint export failed.');}
@@ -1245,7 +1256,7 @@ async function driveOpen(){
 }
 async function driveExport(asSlides){
   finishEdit();
-  if(!window.PptxGenJS){toast('The PowerPoint library did not load. Check your connection and try again.');return;}
+  if(!(await loadPptx())){toast('The PowerPoint library did not load. Check your connection or ad blocker and try again.');return;}
   toast(asSlides?'Building and converting…':'Building your PowerPoint file…');
   const px=await buildPptx(); const blob=await px.write({outputType:'blob'});
   const parent=await ensureFolder();
