@@ -6,10 +6,10 @@ const CLIENT = '123-abc.apps.googleusercontent.com';
 const read = (blob, w) => new Promise((res) => { const r = new w.FileReader(); r.onload = () => res(r.result); r.readAsText(blob); });
 
 // A tiny in-memory Google: token client, picker and Drive REST.
-function fakeGoogle({ expire401 = false } = {}) {
+function fakeGoogle({ expire401 = false, apiKey = 'AIzaTEST' } = {}) {
   const g = { calls: [], tokens: 0, files: new Map(), nextId: 1, revoked: [], picks: [], authHeaders: [], fail401: expire401 };
   g.init = (w) => {
-    w.localStorage.setItem('slides-studio:google', JSON.stringify({ clientId: CLIENT, apiKey: 'AIzaTEST' }));
+    w.localStorage.setItem('slides-studio:google', JSON.stringify({ clientId: CLIENT, apiKey }));
     w.google = {
       accounts: { oauth2: {
         initTokenClient: (cfg) => ({ requestAccessToken: (o) => { g.tokens++; g.lastPrompt = o && o.prompt; setTimeout(() => cfg.callback({ access_token: 'tok' + g.tokens, expires_in: 3600 }), 0); } }),
@@ -47,6 +47,9 @@ function fakeGoogle({ expire401 = false } = {}) {
         const id = decodeURIComponent(url.match(/files\/([^?]+)/)[1]); const f = g.files.get(id);
         return { ok: true, status: 200, text: async () => f.data, blob: async () => f.blob || new w.Blob([f.data], { type: 'text/plain' }) };
       }
+      if (method === 'GET' && url.includes('slides-studio.json')) {
+        return json({ files: [...g.files.values()].filter((f) => f.name && f.name.endsWith('.slides-studio.json')).map((f) => ({ id: f.id, name: f.name, modifiedTime: '2026-10-07T00:00:00Z' })) });
+      }
       if (method === 'GET' && url.includes('/drive/v3/files?q=')) {
         const hit = [...g.files.values()].find((f) => f.meta && f.meta.mimeType === 'application/vnd.google-apps.folder');
         return json({ files: hit ? [{ id: hit.id, name: hit.name }] : [] });
@@ -67,9 +70,9 @@ test('without keys the cloud menu opens the setup dialog and saves keys', async 
   const a = await boot();
   a.$('#driveDlg').showModal = function () { this.setAttribute('open', ''); };
   a.$('#driveDlg').close = function () { this.removeAttribute('open'); };
-  openCloud(a); click(menuItem(a, 'Set up Google Drive'));
+  openCloud(a); click(menuItem(a, 'Use my own Google keys'));
   assert.ok(a.$('#driveDlg').hasAttribute('open'));
-  a.$('#gClient').value = 'nope'; a.$('#gKey').value = 'k'; click(a.$('#gSave'));
+  a.$('#gClient').value = 'nope'; click(a.$('#gSave'));
   assert.match(a.$('#gWarn').textContent, /apps\.googleusercontent\.com/);
   a.$('#gClient').value = CLIENT; click(a.$('#gSave'));
   assert.equal(JSON.parse(a.w.localStorage.getItem('slides-studio:google')).clientId, CLIENT);
@@ -158,4 +161,26 @@ test('disconnect revokes the token and unlinks the deck', async () => {
   assert.ok(a.$('#driveChip').hidden);
   assert.equal(JSON.parse(a.w.localStorage.getItem('slides-studio:v1')).drive, null);
   a.close();
+});
+
+test('with only a Client ID: sign in, then choose a deck from the in-app list', async () => {
+  const g = fakeGoogle({ apiKey: '' }); const a = await boot({ init: g.init });
+  a.$$('#insertBar button')[1].click();
+  assert.ok(!menuItem(a, 'From Google Drive'), 'no Drive image option without an API key');
+  a.d.body.click();
+  openCloud(a);
+  assert.ok(menuItem(a, 'Sign in with Google'));
+  click(menuItem(a, 'Sign in with Google')); await wait(100);
+  assert.equal(g.tokens, 1);
+  const deck = { format: 'slides-studio', version: 1, deck: { title: 'Listed', theme: 'ink', slides: [{ id: 's1', elements: [] }] }, assets: {} };
+  g.files.set('d1', { id: 'd1', name: 'Listed.slides-studio.json', meta: {}, data: JSON.stringify(deck) });
+  a.d.querySelectorAll('dialog').forEach((x) => { if (!x.showModal) x.showModal = function () { this.setAttribute('open', ''); }; });
+  a.w.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+  a.w.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
+  openCloud(a); click(menuItem(a, 'Open deck from Drive')); await wait(150);
+  const row = a.$$('#deckPick .mi')[0];
+  assert.match(row.textContent, /Listed/);
+  click(row); await wait(150);
+  assert.equal(a.$('#deckTitle').value, 'Listed');
+  assert.deepEqual(a.errors, []); a.close();
 });

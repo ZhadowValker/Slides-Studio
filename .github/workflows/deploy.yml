@@ -36,7 +36,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir dist
-          cp index.html dist/
+          cp index.html privacy.html dist/
           if [ -f deck.json ]; then cp deck.json dist/; fi
           if [ -d decks ]; then cp -r decks dist/decks; fi
           echo "Site contents:"

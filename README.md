@@ -103,7 +103,9 @@ The cloud icon next to the save menu connects Slides Studio to your own Google D
 | Add image → From Google Drive | Picks an image from Drive and adds it to the slide. |
 | Disconnect Google | Revokes the access token and unlinks the deck. Your Drive files are untouched. |
 
-### One-time setup
+### One-time setup (for whoever publishes the site)
+
+Visitors only click **Sign in with Google**. For that to work, the person who publishes the site makes one Google Client ID and pastes it into `GOOGLE_DEFAULTS` at the top of the Drive section in `index.html`. Until then, anyone can still use the cloud menu's **Use my own Google keys…** to enter their own. The API key is optional: without it, **Open deck from Drive** shows an in-app list of your saved decks, and the image-from-Drive option is hidden.
 
 Google requires every web app to use its own keys. This takes about ten minutes and costs nothing.
 
@@ -113,10 +115,10 @@ Google requires every web app to use its own keys. This takes about ten minutes 
 2. Enable the **Google Drive API** and the **Google Picker API** (**APIs & Services → Library**).
 3. Under **OAuth consent screen**, set up the app (External is fine) and add your Google account as a **test user**.
 4. Under **Credentials**, create an **OAuth client ID** of type **Web application**. Add your site's address to **Authorized JavaScript origins**, for example `https://YOUR-NAME.github.io` or `http://localhost:8080`. Use the origin only, with no path.
-5. Create an **API key** and restrict it to the Picker API and your site's address.
-6. In Slides Studio, choose the cloud icon, then **Set up Google Drive…**, and paste the Client ID and API key.
+5. Optional: create an **API key** restricted to the Picker API. It adds the image-from-Drive option.
+6. Paste the Client ID (and optional API key) into `GOOGLE_DEFAULTS` in `index.html`, or into the dialog under **Use my own Google keys…**.
 
-The keys are stored only in your browser. The Client ID and API key are not secrets in the way a password is, but keep the API key restricted. To bake them into your published site for everyone who opens it, fill in `GOOGLE_DEFAULTS` near the top of the Drive section in `index.html`.
+The Client ID and API key are not passwords, but keep the API key restricted. Keys entered in the dialog stay in that browser only.
 
 Access tokens are held in memory and are never saved. After a reload, the next Drive action asks Google for a fresh token, usually without a prompt.
 
@@ -196,6 +198,7 @@ The live site opens the sample deck by default. To publish a deck of your own:
 Slides-Studio/
 ├── index.html                 The whole app (HTML, CSS and JavaScript)
 ├── deck.json                  The sample deck, used by the Share link
+├── privacy.html               Privacy policy (needed for Google sign-in)
 ├── package.json               Scripts and test dependencies
 ├── package-lock.json
 ├── scripts/

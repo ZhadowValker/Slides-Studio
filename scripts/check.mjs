@@ -30,6 +30,10 @@ missing.length ? fail(`missing element ids: ${missing.join(', ')}`) : note(`all 
 const kb = Buffer.byteLength(html) / 1024;
 kb < 2048 ? note(`file size is ${kb.toFixed(0)} KB`) : fail(`index.html is ${kb.toFixed(0)} KB (over 2 MB)`);
 
+// 3b. The privacy policy page Google requires for sign-in must ship with the site.
+fs.existsSync(new URL('privacy.html', root)) && /Limited Use/.test(fs.readFileSync(new URL('privacy.html', root), 'utf8')) ? note('privacy.html is present') : fail('privacy.html is missing or incomplete');
+/href="privacy\.html"/.test(html) ? note('index.html links to the privacy policy') : fail('index.html has no link to privacy.html');
+
 // 4. Any deck.json that ships with the site must be a valid Slides Studio deck.
 for (const name of ['deck.json']) {
   const file = new URL(name, root);

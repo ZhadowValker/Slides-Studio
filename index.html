@@ -132,7 +132,7 @@ dialog{background:var(--ui-raise);color:var(--ui-text);border:1px solid var(--ui
 dialog::backdrop{background:#0009}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ui-line);background:transparent;color:var(--ui-dim);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;max-width:240px}
 .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .chip:hover{color:var(--ui-text)} .chip.warn{color:#f5a524;border-color:#f5a524}
-dialog a{color:#8ab4ff}
+dialog a{color:#8ab4ff} .dlist{display:grid;gap:2px;max-height:50vh;overflow:auto;margin-top:10px} .dlist .mi{width:100%}
 dialog h2{margin:0 0 6px;font-size:18px} dialog ol{padding-left:20px;margin:12px 0;display:grid;gap:8px}
 dialog code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;background:var(--ui-bg);padding:1px 6px;border-radius:5px}
 dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-width:0}
@@ -190,6 +190,7 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
     <input id="deckTitle" class="title-in" aria-label="Deck title" spellcheck="false">
     <button class="ico" id="btnDeckMenu" data-popbtn title="Deck options" aria-label="Deck options"></button>
     <span id="saveState" class="dim"></span>
+    <a class="dim" href="privacy.html" target="_blank" rel="noopener" style="color:inherit">Privacy</a>
     <button class="chip" id="driveChip" hidden><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5 4.75 4.75 0 0117 18z"/></svg><span></span></button>
     <span class="grow"></span>
     <button class="ico" id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo"></button>
@@ -247,18 +248,18 @@ dialog .row{display:flex;gap:8px;margin-top:14px} dialog .row input{flex:1;min-w
 </dialog>
 
 <dialog id="driveDlg">
-  <h2>Connect Google Drive</h2>
-  <p class="dim" style="margin:0">Slides Studio runs in your browser, so it uses your own Google Cloud keys. Nothing is sent anywhere except Google. It can only see files it creates or that you pick.</p>
+  <h2>Use your own Google keys</h2>
+  <p class="dim" style="margin:0">Normally you only click <b>Sign in with Google</b>. Use this if the site you are on has no Google Client ID built in. Nothing is sent anywhere except Google, and the app can only see files it creates or that you pick.</p>
   <ol>
     <li>In <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, create a project and enable the <b>Google Drive API</b> and the <b>Google Picker API</b>.</li>
     <li>Under <b>APIs &amp; Services → OAuth consent screen</b>, set up the app and add yourself as a test user.</li>
     <li>Under <b>Credentials</b>, create an <b>OAuth client ID</b> of type <b>Web application</b>. Add the address below to <b>Authorized JavaScript origins</b>.</li>
-    <li>Create an <b>API key</b> and restrict it to the Picker API and to this address.</li>
-    <li>Paste both values here.</li>
+    <li>Optional: create an <b>API key</b> restricted to the Picker API. It lets you choose images from anywhere in Drive.</li>
+    <li>Paste the values here.</li>
   </ol>
   <label class="dim">This app's address (add it as an authorized origin)<input class="txt-ui" id="gOrigin" readonly></label>
   <label class="dim">OAuth Client ID<input class="txt-ui" id="gClient" placeholder="1234-abc.apps.googleusercontent.com" spellcheck="false" autocomplete="off"></label>
-  <label class="dim">API key<input class="txt-ui" id="gKey" placeholder="AIza…" spellcheck="false" autocomplete="off"></label>
+  <label class="dim">API key (optional)<input class="txt-ui" id="gKey" placeholder="AIza…" spellcheck="false" autocomplete="off"></label>
   <p id="gWarn" class="dim" style="color:#f5a524;margin:8px 0 0" role="alert"></p>
   <div class="row"><button class="btn" id="gClear">Remove keys</button><span class="grow"></span><button class="btn" id="gCancel">Cancel</button><button class="btn primary" id="gSave">Save</button></div>
 </dialog>
@@ -1074,7 +1075,9 @@ async function exportPPTX(){
 // Slides Studio talks to Google directly from the browser. It only asks for the
 // "drive.file" permission: it can see files it created or files you pick, nothing else.
 const GCFG_KEY='slides-studio:google';
-const GOOGLE_DEFAULTS={clientId:'',apiKey:''};   // fill these in to bake your own keys into the page
+// Paste your OAuth Client ID here (once) and every visitor just sees "Sign in with Google".
+// apiKey is optional: it only enables the Google file picker for choosing images from anywhere in Drive.
+const GOOGLE_DEFAULTS={clientId:'873854230042-9kor2lj1i05m2030m0lk464eh536eg3a.apps.googleusercontent.com',apiKey:''};
 const G_SCOPE='https://www.googleapis.com/auth/drive.file';
 const G_FOLDER='Slides Studio';
 const D_DELAY=4000;
@@ -1151,8 +1154,31 @@ async function driveUpload({id,name,mime,blob,parents,convertTo}){
 }
 const driveMedia=id=>G_API+'/'+encodeURIComponent(id)+'?alt=media';
 
+async function listDecks(){
+  const q=encodeURIComponent("name contains '.slides-studio.json' and trashed=false");
+  const r=await (await gfetch(G_API+'?q='+q+'&orderBy=modifiedTime desc&pageSize=50&fields=files(id,name,modifiedTime)')).json();
+  return r.files||[];
+}
+function chooseDeck(files){
+  return new Promise(res=>{
+    const dlg=h('dialog',{id:'deckPick'});
+    const done=v=>{dlg.close();dlg.remove();res(v);};
+    dlg.append(h('h2',{text:'Open a deck from Drive'}));
+    if(!files.length) dlg.append(h('p',{class:'dim',text:'No saved decks yet. Use Save deck to Drive first.'}));
+    const list=h('div',{class:'dlist'});
+    files.forEach(f=>list.append(h('button',{class:'mi',type:'button',onclick:()=>done(f)},
+      h('span',{text:f.name.replace(/\.slides-studio\.json$/,'')}),
+      h('span',{class:'hint',text:f.modifiedTime?new Date(f.modifiedTime).toLocaleDateString():''}))));
+    dlg.append(list,h('div',{class:'row'},h('span',{class:'grow'}),h('button',{class:'btn',type:'button',text:'Cancel',onclick:()=>done(null)})));
+    dlg.addEventListener('cancel',()=>{dlg.remove();res(null);});
+    document.body.append(dlg); dlg.showModal();
+  });
+}
 async function pick(kind){
-  if(!gcfg.apiKey){openDriveSettings();throw new Error('setup');}
+  if(!gcfg.apiKey){
+    if(kind==='deck'){await getToken();return chooseDeck(await listDecks());}
+    throw new Error('Choosing images from Drive needs a Google API key. Use Upload from device instead.');
+  }
   const tok=await getToken(); await loadPicker();
   return new Promise(res=>{
     const P=google.picker;
@@ -1244,6 +1270,9 @@ function gd(fn){
   if(!gcfg.clientId){openDriveSettings();return Promise.resolve();}
   return Promise.resolve().then(fn).catch(driveErr);
 }
+function signIn(){
+  return gd(async()=>{await getToken();setDriveStatus('');toast('Signed in to Google.');});
+}
 function disconnectGoogle(){
   const t=gTok; gTok=null; gTokExp=0; gFolder=null; clearTimeout(dTimer);
   try{localStorage.removeItem(GCFG_KEY+':ok');}catch(e){}
@@ -1253,8 +1282,9 @@ function disconnectGoogle(){
 }
 function driveMenu(anchor){
   const items=[];
-  if(!gcfg.clientId) items.push({icon:'cloud',label:'Set up Google Drive…',run:openDriveSettings});
+  if(!gcfg.clientId) items.push({icon:'cloud',label:'Sign in with Google',run:openDriveSettings});
   else{
+    if(!gTok&&!drive.id) items.push({icon:'cloud',label:'Sign in with Google',run:signIn},'-');
     items.push({icon:'cloud',label:drive.id?'Save to Drive now':'Save deck to Drive',run:()=>gd(()=>driveSaveAction(false))});
     if(drive.id) items.push({icon:'copy',label:'Save as a new Drive file',run:()=>gd(()=>driveSaveAction(true))});
     items.push({icon:'open',label:'Open deck from Drive…',run:()=>gd(driveOpen)},'-',
@@ -1263,7 +1293,7 @@ function driveMenu(anchor){
     if(drive.id) items.push('-',{icon:'cloud',label:'Autosave to Drive',hint:drive.auto?'On':'Off',run:()=>{
       drive.auto=!drive.auto; clearTimeout(dTimer); if(drive.auto) driveQueue(); else setDriveStatus(''); driveUI(); if(autosave) persistLocal();
     }});
-    items.push('-',{icon:'file',label:'Google Drive settings…',run:openDriveSettings});
+    items.push('-',{icon:'file',label:'Use my own Google keys…',run:openDriveSettings});
     if(gTok||drive.id) items.push({icon:'trash',label:'Disconnect Google',run:disconnectGoogle});
   }
   openPop(anchor,menu(items),{right:true});
@@ -1277,11 +1307,11 @@ function openDriveSettings(){
 $('#gCancel').onclick=()=>$('#driveDlg').close();
 $('#gSave').onclick=()=>{
   const c=$('#gClient').value.trim(), k=$('#gKey').value.trim();
-  if(!c||!k){$('#gWarn').textContent='Both the Client ID and the API key are needed.';return;}
+  if(!c){$('#gWarn').textContent='The Client ID is needed.';return;}
   if(!/\.apps\.googleusercontent\.com$/.test(c)){$('#gWarn').textContent='The Client ID should end in .apps.googleusercontent.com.';return;}
   gcfg.clientId=c; gcfg.apiKey=k; gTok=null; gClient=null; gFolder=null;
   try{localStorage.setItem(GCFG_KEY,JSON.stringify({clientId:c,apiKey:k}));}catch(e){}
-  $('#driveDlg').close(); toast('Google Drive is set up. Open the cloud menu to save or open a deck.');
+  $('#driveDlg').close(); toast('Saved. Open the cloud menu and choose Sign in with Google.');
 };
 $('#gClear').onclick=()=>{
   gcfg.clientId=GOOGLE_DEFAULTS.clientId; gcfg.apiKey=GOOGLE_DEFAULTS.apiKey; gTok=null; gClient=null; gFolder=null;
@@ -1404,7 +1434,7 @@ ib.append(
   ibtn('image','Add image',ev=>openPop(ev.currentTarget,menu([
     {icon:'open',label:'Upload from device',run:()=>$('#fileImg').click()},
     {icon:'image',label:'From web address',run:addImageUrl},
-    {icon:'cloud',label:'From Google Drive',run:()=>gd(addImageFromDrive)}
+    ...(gcfg.apiKey?[{icon:'cloud',label:'From Google Drive',run:()=>gd(addImageFromDrive)}]:[])
   ])),{pop:true}),
   ibtn('table','Add table',addTable),
   ibtn('shapes','Add shape',ev=>openPop(ev.currentTarget,menu([
